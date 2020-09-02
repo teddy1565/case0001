@@ -1,0 +1,142 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <title>test</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="row justify-content-center">
+        <div>
+          <h1>hello world</h1>
+        </div>
+      </div>
+      <div class="row justify-content-left col-sm-3">
+        <div id="add-new-topic" class="dropdown">
+          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          select:條款主題編輯
+          </button>
+          <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            <div id="topic-option">
+              <!--when window onload use XHR to Request topic option-->
+            </div>
+            <button class="dropdown-item" onclick="addTopic()">新增</button>
+          </div>
+        </div>
+      </div>
+      <div class="row justify-content-left col-sm-2">
+        <input type="text" class="form-control" id="author" placeholder="作者">
+      </div>
+      <div class="row justify-content-center">
+        <div class="col-sm-12">
+          <div class="form-group">
+            <div class="col-sm-12" style="text-align:center;"><label for="comment">條文內容編輯</label></div>
+            <textarea class="form-control" rows="15" id="topic_comment" disabled></textarea>
+            <div class="col-sm-12" style="text-align:center;">
+              <button id="submit_topic_btn" class="btn btn-success" onclick="submit_new_topic()" disabled>submit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+     <!--script-->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+
+  </body>
+</html>
+<script>
+  var selectID;
+  var data;
+  window.onload = ()=>{
+    document.getElementById("author").value=null;
+    document.getElementById("topic_comment").value=null;
+    //send a XHR to request all topic option and push they to cilent
+    let onloadXHR = new XMLHttpRequest();
+    onloadXHR.open("GET","http://localhost:3001/index.php?editPage_onload=true");
+    onloadXHR.responseType = "json";
+    onloadXHR.onreadystatechange=function(){
+      if(onloadXHR.readyState==4&&onloadXHR.status==200){
+        let dropMenuOptions = decodeURI(onloadXHR.response);
+        data = JSON.parse(dropMenuOptions);
+        let topicTitle="";
+        for(let i in data){
+          topicTitle = topicTitle+`<button class="dropdown-item" onclick="push_content(this.value)" value="${data[i].id}">${data[i].topic}</button>`;
+        }
+        document.getElementById("topic-option").innerHTML=topicTitle;
+      }
+    }
+    onloadXHR.send();
+  }
+  var addTopic_click_check=false;
+  function addTopic(){
+    addTopic_click_check=true;
+    document.getElementById("add-new-topic").innerHTML="<input type='text' class='form-control' id='add-topic-text' onchange='check_add_topic_text_REG(this.id)' placeholder='條文主題'>";
+    document.getElementById("author").disabled=false;
+    document.getElementById("author").value=null;
+    document.getElementById("topic_comment").value=null;
+  }
+  function check_add_topic_text_REG(thisID){
+    let str = document.getElementById(thisID).value;
+    if(str.match(/[\.\'\"\&\!\#\*\=\$\\\/\%\^\s]/)!=null||str==''){
+      document.getElementById(thisID).className="form-control is-invalid";
+      document.getElementById("topic_comment").disabled=true;
+      document.getElementById("topic_comment").placeholder="請勿在標題中輸入特殊字元或留白";
+      document.getElementById("submit_topic_btn").disabled=true;
+    }else{
+      document.getElementById(thisID).className="form-control is-valid";
+      document.getElementById("topic_comment").disabled=false;
+      document.getElementById("topic_comment").placeholder="輸入條文內容";
+      document.getElementById("submit_topic_btn").disabled=false;
+    };
+  }
+  function push_content(id){
+    let target;
+    for(let i in data){
+      if(data[i].id==id){
+        document.getElementById("dropdownMenuButton").innerHTML=`${id}.${data[i].topic}`;
+        selectID = data[i];
+        document.getElementById("author").disabled=true;
+        document.getElementById("author").value=`${data[i].author}`;
+        document.getElementById("topic_comment").disabled=false;
+        document.getElementById("topic_comment").value=`${data[i].content}`;
+        document.getElementById("submit_topic_btn").disabled=false;
+      }
+    }
+    //document.getElementById("dropdownMenuButton").innerHTML=id+;
+  }
+  function submit_new_topic(){
+    let topic = addTopic_click_check==false?selectID.topic:document.getElementById("add-topic-text").value;
+    let content = document.getElementById("topic_comment").value;
+    let TIME = new Date();
+    let update_when = TIME.getFullYear()+"-"+(TIME.getMonth()+1)+"-"+TIME.getDate();
+    let author = document.getElementById("author").value;
+    function count_data_length(){
+      let id=1;
+      for(let i in data){
+        id++;
+      }
+      return id;
+    }
+    let id = addTopic_click_check==false?selectID.id:count_data_length();
+    /*console.log(topic);
+    console.log(content);
+    console.log(update_when);
+    console.log(author);
+    console.log(id);*/
+    
+    let update_topic = new XMLHttpRequest();
+    update_topic.open("POST","http://127.0.0.1:3001/index.php");
+    update_topic.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
+    update_topic.onreadystatechange=()=>{
+      if(update_topic.readyState==4&&update_topic.status==200){
+        alert(update_topic.responseText);
+        location.reload();
+      }
+    };
+    update_topic.send(`id=${id}&topic=${topic}&content=${content}&update_when=${update_when}&author=${author}`);
+  }
+</script>
